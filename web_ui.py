@@ -145,16 +145,29 @@ def api_accounts():
     return jsonify(accounts)
 
 if __name__ == '__main__':
-    # יצירת תיקיית templates אם לא קיימת
+    # יצירת תיקיות נדרשות
     os.makedirs('templates', exist_ok=True)
     os.makedirs('accounts', exist_ok=True)
     
-    # קבלת PORT מ-Railway או ברירת מחדל
+    # קבלת PORT מ-Railway (Railway מגדיר את זה אוטומטית)
     port = int(os.getenv('PORT', 5000))
-    host = os.getenv('HOST', '0.0.0.0')
+    host = '0.0.0.0'
     
-    print(f"🌐 Web UI running on http://{host}:{port}")
-    print("📱 Open browser to manage accounts and connect")
-    print("ℹ️  Note: Accounts will start automatically when connected via UI")
+    print("=" * 60)
+    print(f"🌐 Telefeed Web UI")
+    print(f"📍 Running on: http://{host}:{port}")
+    print(f"🚀 Railway will provide public URL automatically")
+    print("=" * 60)
+    print("📱 Access the UI to:")
+    print("   • Add Telegram accounts")
+    print("   • Connect and authenticate")
+    print("   • Configure routing rules")
+    print("=" * 60)
     
-    app.run(debug=False, host=host, port=port)
+    # הרצה ללא debug mode ב-production
+    app.run(
+        debug=False, 
+        host=host, 
+        port=port,
+        use_reloader=False
+    )
