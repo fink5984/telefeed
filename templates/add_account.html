@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הוספת חשבון חדש</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .form-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>➕ הוספת חשבון חדש</h1>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label>שם החשבון (זיהוי)</label>
+                <input type="text" name="name" required placeholder="לדוגמה: my_account">
+            </div>
+            
+            <div class="form-group">
+                <label>סוג החשבון</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="user" name="account_type" value="user" checked onchange="toggleFields()">
+                        <label for="user">חשבון משתמש</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="bot" name="account_type" value="bot" onchange="toggleFields()">
+                        <label for="bot">בוט</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>API ID</label>
+                <input type="number" name="api_id" required placeholder="מ-my.telegram.org">
+            </div>
+            
+            <div class="form-group">
+                <label>API Hash</label>
+                <input type="text" name="api_hash" required placeholder="מ-my.telegram.org">
+            </div>
+            
+            <div class="form-group" id="phone-field">
+                <label>מספר טלפון</label>
+                <input type="text" name="phone" placeholder="+972501234567">
+            </div>
+            
+            <div class="form-group hidden" id="bot-field">
+                <label>Bot Token</label>
+                <input type="text" name="bot_token" placeholder="מ-@BotFather">
+            </div>
+            
+            <button type="submit" class="btn">💾 שמור חשבון</button>
+            <a href="/" class="btn btn-secondary">ביטול</a>
+        </form>
+        
+        <div class="back-link">
+            <a href="/">← חזרה לרשימת חשבונות</a>
+        </div>
+    </div>
+    
+    <script>
+        function toggleFields() {
+            const accountType = document.querySelector('input[name="account_type"]:checked').value;
+            const phoneField = document.getElementById('phone-field');
+            const botField = document.getElementById('bot-field');
+            
+            if (accountType === 'bot') {
+                phoneField.classList.add('hidden');
+                phoneField.querySelector('input').removeAttribute('required');
+                botField.classList.remove('hidden');
+                botField.querySelector('input').setAttribute('required', 'required');
+            } else {
+                phoneField.classList.remove('hidden');
+                phoneField.querySelector('input').setAttribute('required', 'required');
+                botField.classList.add('hidden');
+                botField.querySelector('input').removeAttribute('required');
+            }
+        }
+    </script>
+</body>
+</html>

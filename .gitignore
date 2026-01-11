@@ -29,6 +29,10 @@ ENV/
 *.session
 *.session-journal
 
+# Accounts data
+accounts/
+!accounts/.gitkeep
+
 # Data directory
 data/
 
