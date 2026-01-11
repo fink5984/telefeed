@@ -4,10 +4,31 @@ Web UI לניהול חשבונות טלגרם
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import asyncio
 import os
+import threading
 from accounts_manager import AccountManager
 
 app = Flask(__name__)
 manager = AccountManager()
+
+# Background task for running telefeed
+telefeed_task = None
+telefeed_loop = None
+
+def run_telefeed_background():
+    """מריץ את telefeed_multi ברקע"""
+    global telefeed_loop
+    from telefeed_multi import MultiAccountTelefeed
+    
+    telefeed_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(telefeed_loop)
+    
+    system = MultiAccountTelefeed()
+    try:
+        telefeed_loop.run_until_complete(system.start_all_accounts())
+    except Exception as e:
+        print(f"❌ Telefeed background error: {e}")
+    finally:
+        telefeed_loop.close()
 
 # יצירת event loop לטיפול ב-async
 def run_async(coro):
@@ -58,23 +79,41 @@ def add_account():
 @app.route('/account/<name>/login', methods=['GET', 'POST'])
 def login_account(name):
     """התחברות לחשבון"""
+    account = manager.get_account(name)
+    if not account:
+        return "Account not found", 404
+    
     if request.method == 'POST':
         code = request.form.get('code')
         result = run_async(manager.login_account(name, code))
         
         if result.get('success'):
-            return redirect(url_for('index'))
+            # אחרי התחברות מוצלחת, הפעל מחדש את telefeed
+            return render_template('login.html', name=name, success=True)
         elif result.get('needs_code'):
-            return render_template('login.html', name=name, needs_code=True)
+            return render_template('login.html', name=name, needs_code=True, 
+                                 message=result.get('message'))
         else:
             return render_template('login.html', name=name, error=result.get('error'))
     
-    # GET - שליחת קוד
-    result = run_async(manager.login_account(name))
-    if result.get('needs_code'):
-        return render_template('login.html', name=name, needs_code=True)
-    
-    return redirect(url_for('index'))
+    # GET - שליחת קוד או התחלת תהליך
+    if account.get('bot_token'):
+        # בוט - התחברות ישירה
+        result = run_async(manager.login_account(name))
+        if result.get('success'):
+            return render_template('login.html', name=name, success=True)
+        else:
+            return render_template('login.html', name=name, error=result.get('error'))
+    else:
+        # משתמש - צריך קוד
+        result = run_async(manager.login_account(name))
+        if result.get('needs_code'):
+            return render_template('login.html', name=name, needs_code=True,
+                                 message=result.get('message'))
+        elif result.get('success'):
+            return render_template('login.html', name=name, success=True)
+        else:
+            return render_template('login.html', name=name, error=result.get('error'))
 
 @app.route('/account/<name>/toggle', methods=['POST'])
 def toggle_account(name):
@@ -130,6 +169,16 @@ if __name__ == '__main__':
     # יצירת תיקיית templates אם לא קיימת
     os.makedirs('templates', exist_ok=True)
     
-    print("🚀 Web UI running on http://localhost:5000")
+    # הרצת telefeed ברקע
+    print("🚀 Starting Telefeed Multi-Account System in background...")
+    telefeed_thread = threading.Thread(target=run_telefeed_background, daemon=True)
+    telefeed_thread.start()
+    
+    # קבלת PORT מ-Railway או ברירת מחדל
+    port = int(os.getenv('PORT', 5000))
+    host = os.getenv('HOST', '0.0.0.0')
+    
+    print(f"🌐 Web UI running on http://{host}:{port}")
     print("📱 Open browser to manage accounts")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    app.run(debug=False, host=host, port=port, threaded=True)

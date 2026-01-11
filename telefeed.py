@@ -26,6 +26,7 @@ BOT_TOKEN      = os.getenv("BOT_TOKEN")               # אופציונלי – �
 SESSION_NAME   = os.getenv("SESSION", "telefeed")     # בלי .session
 SESSION_STRING = os.getenv("SESSION_STRING")          # אופציונלי – אם רוצים בלי קובץ
 OWNER_ID       = int(os.getenv("OWNER_ID", "0"))      # מי יכול להריץ /reload
+PHONE          = os.getenv("PHONE")                   # מספר טלפון להתחברות
 
 # ====== ברירת מחדל גלובלית לחוקים ======
 global_defaults = {
@@ -206,9 +207,18 @@ async def main():
     if BOT_TOKEN:
         await client.start(bot_token=BOT_TOKEN)
         log("🤖 TeleFeed started as BOT account")
+    elif SESSION_STRING:
+        await client.connect()
+        if not await client.is_user_authorized():
+            log("❌ SESSION_STRING is invalid or expired")
+            return
+        log("👤 TeleFeed started as USER account (via SESSION_STRING)")
+    elif PHONE:
+        await client.start(phone=PHONE)
+        log(f"👤 TeleFeed started as USER account ({PHONE})")
     else:
-        await client.start()
-        log("👤 TeleFeed started as USER account")
+        log("❌ ERROR: Must provide BOT_TOKEN, SESSION_STRING, or PHONE in environment")
+        return
 
     load_routes(force=True)
     log("📡 TeleFeed running with multiple routes…")
