@@ -150,7 +150,7 @@ if __name__ == '__main__':
     os.makedirs('accounts', exist_ok=True)
     
     # קבלת PORT מ-Railway (Railway מגדיר את זה אוטומטית)
-    port = int(os.getenv('PORT', 5000))
+    port = int(os.getenv('PORT', 5080))
     host = '0.0.0.0'
     
     print("=" * 60)
