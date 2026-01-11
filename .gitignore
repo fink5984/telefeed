@@ -29,6 +29,9 @@ ENV/
 *.session
 *.session-journal
 
+# Data directory
+data/
+
 # Environment variables
 .env
 .env.local
