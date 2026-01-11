@@ -4,6 +4,7 @@
 import os
 import json
 import asyncio
+import time
 from typing import Dict, List, Optional
 from telethon import TelegramClient
 from telethon.sessions import StringSession
@@ -23,13 +24,34 @@ class AccountManager:
     def load_accounts(self):
         """טוען חשבונות מהקובץ"""
         if os.path.exists(ACCOUNTS_FILE):
-            with open(ACCOUNTS_FILE, 'r', encoding='utf-8') as f:
-                self.accounts = json.load(f)
+            try:
+                with open(ACCOUNTS_FILE, 'r', encoding='utf-8') as f:
+                    self.accounts = json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"Warning: Could not load accounts: {e}")
+                self.accounts = {}
     
     def save_accounts(self):
-        """שומר חשבונות לקובץ"""
-        with open(ACCOUNTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(self.accounts, f, ensure_ascii=False, indent=2)
+        """שומר חשבונות לקובץ עם retry"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Write to temp file first
+                temp_file = ACCOUNTS_FILE + '.tmp'
+                with open(temp_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.accounts, f, ensure_ascii=False, indent=2)
+                
+                # Atomic rename
+                if os.path.exists(ACCOUNTS_FILE):
+                    os.replace(temp_file, ACCOUNTS_FILE)
+                else:
+                    os.rename(temp_file, ACCOUNTS_FILE)
+                return
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    time.sleep(0.1 * (attempt + 1))
+                else:
+                    print(f"Error saving accounts: {e}")
     
     def add_account(self, name: str, api_id: int, api_hash: str, 
                    phone: str = None, bot_token: str = None, 
@@ -117,20 +139,31 @@ class AccountManager:
         
         try:
             client = await self.create_client(name)
+            if not client:
+                return {"success": False, "error": "Failed to create client"}
+            
+            await client.connect()
             
             if not await client.is_user_authorized():
                 if account.get("bot_token"):
                     await client.start(bot_token=account["bot_token"])
                 elif code:
                     # אימות עם קוד
-                    await client.sign_in(account["phone"], code)
+                    phone = account.get("phone")
+                    if not phone:
+                        return {"success": False, "error": "Phone number required"}
+                    await client.sign_in(phone, code)
                 else:
                     # שליחת קוד
-                    await client.send_code_request(account["phone"])
+                    phone = account.get("phone")
+                    if not phone:
+                        return {"success": False, "error": "Phone number required"}
+                    await client.send_code_request(phone)
+                    await client.disconnect()
                     return {
                         "success": False, 
                         "needs_code": True,
-                        "message": "Code sent to phone"
+                        "message": f"Code sent to {phone}"
                     }
             
             # שמירת session string
@@ -139,6 +172,7 @@ class AccountManager:
                 self.accounts[name]["session_string"] = session_str
                 self.save_accounts()
             
+            # Keep client connected
             self.clients[name] = client
             
             return {
@@ -147,7 +181,9 @@ class AccountManager:
             }
             
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            error_msg = str(e)
+            print(f"Login error for {name}: {error_msg}")
+            return {"success": False, "error": error_msg}
     
     def get_client(self, name: str) -> Optional[TelegramClient]:
         """מחזיר client פעיל"""
