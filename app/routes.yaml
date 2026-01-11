@@ -1,0 +1,19 @@
+defaults:
+  mode: FORWARD        # FORWARD | COPY | PREFIX
+  prefix: ""
+  text_only: false
+  media_only: false
+
+routes:
+  - sources:
+      - "-1001574173609"
+      - "-1001446968422"
+      - "-1001446968422"
+      - "-1003238616848"
+      - "-5055314262"
+    dests:
+      - "-3238616848"
+    mode: FORWARD
+    prefix: ""
+    text_only: false
+    media_only: false
