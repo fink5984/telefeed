@@ -4,31 +4,10 @@ Web UI לניהול חשבונות טלגרם
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import asyncio
 import os
-import threading
 from accounts_manager import AccountManager
 
 app = Flask(__name__)
 manager = AccountManager()
-
-# Background task for running telefeed
-telefeed_task = None
-telefeed_loop = None
-
-def run_telefeed_background():
-    """מריץ את telefeed_multi ברקע"""
-    global telefeed_loop
-    from telefeed_multi import MultiAccountTelefeed
-    
-    telefeed_loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(telefeed_loop)
-    
-    system = MultiAccountTelefeed()
-    try:
-        telefeed_loop.run_until_complete(system.start_all_accounts())
-    except Exception as e:
-        print(f"❌ Telefeed background error: {e}")
-    finally:
-        telefeed_loop.close()
 
 # יצירת event loop לטיפול ב-async
 def run_async(coro):
@@ -168,17 +147,14 @@ def api_accounts():
 if __name__ == '__main__':
     # יצירת תיקיית templates אם לא קיימת
     os.makedirs('templates', exist_ok=True)
-    
-    # הרצת telefeed ברקע
-    print("🚀 Starting Telefeed Multi-Account System in background...")
-    telefeed_thread = threading.Thread(target=run_telefeed_background, daemon=True)
-    telefeed_thread.start()
+    os.makedirs('accounts', exist_ok=True)
     
     # קבלת PORT מ-Railway או ברירת מחדל
     port = int(os.getenv('PORT', 5000))
     host = os.getenv('HOST', '0.0.0.0')
     
     print(f"🌐 Web UI running on http://{host}:{port}")
-    print("📱 Open browser to manage accounts")
+    print("📱 Open browser to manage accounts and connect")
+    print("ℹ️  Note: Accounts will start automatically when connected via UI")
     
-    app.run(debug=False, host=host, port=port, threaded=True)
+    app.run(debug=False, host=host, port=port)
