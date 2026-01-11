@@ -142,6 +142,7 @@ class AccountManager:
             if not client:
                 return {"success": False, "error": "Failed to create client"}
             
+            # Always use StringSession to avoid database issues
             await client.connect()
             
             if not await client.is_user_authorized():
@@ -151,15 +152,17 @@ class AccountManager:
                     # אימות עם קוד
                     phone = account.get("phone")
                     if not phone:
+                        await client.disconnect()
                         return {"success": False, "error": "Phone number required"}
                     await client.sign_in(phone, code)
                 else:
                     # שליחת קוד
                     phone = account.get("phone")
                     if not phone:
+                        await client.disconnect()
                         return {"success": False, "error": "Phone number required"}
                     await client.send_code_request(phone)
-                    await client.disconnect()
+                    # Don't disconnect yet - keep the session
                     return {
                         "success": False, 
                         "needs_code": True,
@@ -183,6 +186,12 @@ class AccountManager:
         except Exception as e:
             error_msg = str(e)
             print(f"Login error for {name}: {error_msg}")
+            # Try to clean up
+            try:
+                if client and client.is_connected():
+                    await client.disconnect()
+            except:
+                pass
             return {"success": False, "error": error_msg}
     
     def get_client(self, name: str) -> Optional[TelegramClient]:

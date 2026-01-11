@@ -9,15 +9,21 @@ from accounts_manager import AccountManager
 app = Flask(__name__)
 manager = AccountManager()
 
-# יצירת event loop לטיפול ב-async
+# יצירת event loop גלובלי שנשאר פתוח
+_global_loop = None
+
+def get_or_create_event_loop():
+    """מחזיר event loop קיים או יוצר חדש"""
+    global _global_loop
+    if _global_loop is None or _global_loop.is_closed():
+        _global_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_global_loop)
+    return _global_loop
+
 def run_async(coro):
-    """מריץ coroutine באופן סינכרוני"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
+    """מריץ coroutine באופן סינכרוני עם event loop משותף"""
+    loop = get_or_create_event_loop()
+    return loop.run_until_complete(coro)
 
 @app.route('/')
 def index():
